@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { ID, OAuthProvider, Users } from "node-appwrite";
+import { ID, OAuthProvider } from "node-appwrite";
 import {
   adminAccount,
   sessionAccount,
@@ -20,12 +20,30 @@ export const signUpUser = async (
       password,
       name,
     );
-    if (createUser) {
-      res.status(201).json({
-        success: true,
-        message: "User Created with provided credentials",
-      });
-    }
+
+    if (!createUser) return
+
+    const session = await adminAccount.createEmailPasswordSession({
+      email,
+      password,
+    });
+
+    res.cookie(
+      `a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`,
+      session.secret,
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        expires: new Date(session.expire),
+        path: "/",
+      },
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "User created and logged in successfully",
+    });
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "An unknown error occurred";
@@ -42,7 +60,7 @@ export const loginUser = async (
 
   try {
     //login with credentials
-    const session = await sessionAccount.createEmailPasswordSession({
+    const session = await adminAccount.createEmailPasswordSession({
       email,
       password,
     });
@@ -53,7 +71,7 @@ export const loginUser = async (
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         expires: new Date(session.expire),
         path: "/",
       },
@@ -174,16 +192,17 @@ export const handleOAuthSuccess = async (
         {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
+          sameSite: "lax",
           expires: new Date(session.expire),
           path: "/",
         },
       );
-      res.redirect(`${process.env.FRONTEND_URL}/dashboard?auth=success`);
-      res.status(201).json({
-        success: true,
-        message: "OAuth handled Properly with Success",
-      });
+      res.redirect(`${process.env.FRONTEND_URL}?auth=success`);
+    }
+    else {
+      res.redirect(
+        `${process.env.FRONTEND_URL}?auth=failed&error=Invalid OAuth parameters`
+      );
     }
   } catch (err) {
     const message =

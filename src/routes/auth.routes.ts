@@ -21,7 +21,7 @@ router.get("/oauth/success", handleOAuthSuccess);
 router.get("/oauth/failure", handleOAuthFailure);
 
 //Check current session
-router.get("/me", checkCurrentSession);
+router.get("/user", checkCurrentSession);
 
 router.get("/logout", logoutUser);
 
