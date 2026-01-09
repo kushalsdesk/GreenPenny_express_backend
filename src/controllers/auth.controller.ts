@@ -133,7 +133,7 @@ export const logoutUser = async (
 
     if (sessionCookie) {
       sessionClient.setSession(sessionCookie);
-      await sessionAccount.deleteSession(sessionCookie);
+      await sessionAccount.deleteSession("current");
     }
     res.clearCookie(`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`);
 
