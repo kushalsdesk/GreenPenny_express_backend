@@ -34,7 +34,7 @@ export const signUpUser = async (
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none",
         expires: new Date(session.expire),
         path: "/",
       },
@@ -71,7 +71,7 @@ export const loginUser = async (
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none",
         expires: new Date(session.expire),
         path: "/",
       },
@@ -162,10 +162,6 @@ export const initiateOAuth = async (
     });
     res.redirect(redirectUrl);
 
-    res.status(200).json({
-      success: true,
-      message: "OAuth initiated Properly",
-    });
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "An unknown error occurred";
@@ -192,14 +188,13 @@ export const handleOAuthSuccess = async (
         {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
+          sameSite: "none",
           expires: new Date(session.expire),
           path: "/",
         },
       );
       res.redirect(`${process.env.FRONTEND_URL}?auth=success`);
-    }
-    else {
+    } else {
       res.redirect(
         `${process.env.FRONTEND_URL}?auth=failed&error=Invalid OAuth parameters`
       );
@@ -207,7 +202,9 @@ export const handleOAuthSuccess = async (
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "An unknown error occurred";
-    res.status(400).json({ success: false, error: message });
+    res.redirect(
+      `${process.env.FRONTEND_URL}?auth=failed&error=${encodeURIComponent(message)}`
+    );
   }
 };
 export const handleOAuthFailure = async (
