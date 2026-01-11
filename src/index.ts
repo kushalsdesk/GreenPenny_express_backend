@@ -24,14 +24,24 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [
+      process.env.FRONTEND_URL!,
+      "http://localhost:3000",
+      "https://greenpenny.vercel.app",
+      /\.vercel\.app$/,
+    ],
     credentials: true,
   }),
 );
 
 //Health Route
 app.get("/api/v1/health", (req: Request, res: Response) => {
-  res.status(200).json({ status: "OK", message: "Server is Up and Running" });
+  res.status(200).json({
+    status: "OK",
+    message: "Server is Up and Running",
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV
+  });
 });
 
 //routes

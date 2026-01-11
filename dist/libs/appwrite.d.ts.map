@@ -1,1 +1,1 @@
-{"version":3,"file":"appwrite.d.ts","sourceRoot":"","sources":["../../src/libs/appwrite.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,eAAe,CAAC;AAKvC,eAAO,MAAM,WAAW,QAG4B,CAAC;AAErD,eAAO,MAAM,aAAa,QAE6B,CAAC"}
+{"version":3,"file":"appwrite.d.ts","sourceRoot":"","sources":["../../src/libs/appwrite.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,MAAM,eAAe,CAAC;AAkBhD,eAAO,MAAM,WAAW,QAG4B,CAAC;AAErD,eAAO,MAAM,aAAa,QAE6B,CAAC;AAExD,eAAO,MAAM,YAAY,SAA2B,CAAC;AACrD,eAAO,MAAM,cAAc,SAA6B,CAAC"}

@@ -6,6 +6,13 @@ import {
   sessionClient,
 } from "../libs/appwrite.js";
 
+const COOKIE_CONFIG = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none" as const,
+  path: "/",
+};
+
 export const signUpUser = async (
   req: Request,
   res: Response,
@@ -21,7 +28,7 @@ export const signUpUser = async (
       name,
     );
 
-    if (!createUser) return
+    if (!createUser) return;
 
     const session = await adminAccount.createEmailPasswordSession({
       email,
@@ -32,11 +39,8 @@ export const signUpUser = async (
       `a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`,
       session.secret,
       {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
+        ...COOKIE_CONFIG,
         expires: new Date(session.expire),
-        path: "/",
       },
     );
 
@@ -59,7 +63,6 @@ export const loginUser = async (
   const { email, password } = req.body;
 
   try {
-    //login with credentials
     const session = await adminAccount.createEmailPasswordSession({
       email,
       password,
@@ -69,11 +72,8 @@ export const loginUser = async (
       `a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`,
       session.secret,
       {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
+        ...COOKIE_CONFIG,
         expires: new Date(session.expire),
-        path: "/",
       },
     );
 
@@ -135,7 +135,9 @@ export const logoutUser = async (
       sessionClient.setSession(sessionCookie);
       await sessionAccount.deleteSession("current");
     }
-    res.clearCookie(`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`);
+    res.clearCookie(`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`, {
+      ...COOKIE_CONFIG,
+    });
 
     res.status(200).json({
       success: true,
@@ -150,6 +152,7 @@ export const logoutUser = async (
     });
   }
 };
+
 export const initiateOAuth = async (
   req: Request,
   res: Response,
@@ -161,7 +164,6 @@ export const initiateOAuth = async (
       failure: `${process.env.BACKEND_URL}/api/v1/oauth/failure`,
     });
     res.redirect(redirectUrl);
-
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "An unknown error occurred";
@@ -186,11 +188,8 @@ export const handleOAuthSuccess = async (
         `a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`,
         session.secret,
         {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "none",
+          ...COOKIE_CONFIG,
           expires: new Date(session.expire),
-          path: "/",
         },
       );
       res.redirect(`${process.env.FRONTEND_URL}?auth=success`);
@@ -207,6 +206,7 @@ export const handleOAuthSuccess = async (
     );
   }
 };
+
 export const handleOAuthFailure = async (
   req: Request,
   res: Response,
@@ -214,6 +214,6 @@ export const handleOAuthFailure = async (
   const { error } = req.query;
 
   res.redirect(
-    `${process.env.FRONTEND_URL}/login?auth=failed&error=${encodeURIComponent(String(error) || "OAuth authentication failed")}`,
+    `${process.env.FRONTEND_URL}?auth=failed&error=${encodeURIComponent(String(error) || "OAuth authentication failed")}`,
   );
 };

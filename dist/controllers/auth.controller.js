@@ -1,0 +1,144 @@
+import { ID, OAuthProvider } from "node-appwrite";
+import { adminAccount, sessionAccount, sessionClient, } from "../libs/appwrite.js";
+const COOKIE_CONFIG = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+};
+export const signUpUser = async (req, res, next) => {
+    const { email, password, name } = req.body;
+    try {
+        const createUser = await adminAccount.create(ID.unique(), email, password, name);
+        if (!createUser)
+            return;
+        const session = await adminAccount.createEmailPasswordSession({
+            email,
+            password,
+        });
+        res.cookie(`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`, session.secret, {
+            ...COOKIE_CONFIG,
+            expires: new Date(session.expire),
+        });
+        res.status(201).json({
+            success: true,
+            message: "User created and logged in successfully",
+        });
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        res.status(400).json({ success: false, error: message });
+    }
+};
+export const loginUser = async (req, res, next) => {
+    const { email, password } = req.body;
+    try {
+        const session = await adminAccount.createEmailPasswordSession({
+            email,
+            password,
+        });
+        res.cookie(`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`, session.secret, {
+            ...COOKIE_CONFIG,
+            expires: new Date(session.expire),
+        });
+        res.status(200).json({
+            success: true,
+            message: "Auth Session with Email-Password is created",
+        });
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        res.status(400).json({ success: false, error: message });
+    }
+};
+export const checkCurrentSession = async (req, res, next) => {
+    try {
+        const sessionCookie = req.cookies[`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`];
+        if (!sessionCookie) {
+            res.status(401).json({
+                success: false,
+                error: "No Active session",
+            });
+            return;
+        }
+        sessionClient.setSession(sessionCookie);
+        const user = await sessionAccount.get();
+        res.status(200).json({
+            success: true,
+            user: {
+                id: user.$id,
+                email: user.email,
+                name: user.name,
+            },
+        });
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to get current user";
+        res.status(401).json({ success: false, error: message });
+    }
+};
+export const logoutUser = async (req, res) => {
+    try {
+        const sessionCookie = req.cookies[`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`];
+        if (sessionCookie) {
+            sessionClient.setSession(sessionCookie);
+            await sessionAccount.deleteSession("current");
+        }
+        res.clearCookie(`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`, {
+            ...COOKIE_CONFIG,
+        });
+        res.status(200).json({
+            success: true,
+            message: "Logged out successfully",
+        });
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        res.status(400).json({
+            success: false,
+            error: message,
+        });
+    }
+};
+export const initiateOAuth = async (req, res) => {
+    try {
+        const redirectUrl = await adminAccount.createOAuth2Token({
+            provider: OAuthProvider.Google,
+            success: `${process.env.BACKEND_URL}/api/v1/oauth/success`,
+            failure: `${process.env.BACKEND_URL}/api/v1/oauth/failure`,
+        });
+        res.redirect(redirectUrl);
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        res.status(400).json({ success: false, error: message });
+    }
+};
+export const handleOAuthSuccess = async (req, res) => {
+    const { userId, secret } = req.query;
+    try {
+        if (typeof userId === "string" && typeof secret === "string") {
+            const session = await adminAccount.createSession({
+                userId,
+                secret,
+            });
+            res.cookie(`a_session${process.env.EXPRESS_APPWRITE_PROJECT_ID}`, session.secret, {
+                ...COOKIE_CONFIG,
+                expires: new Date(session.expire),
+            });
+            res.redirect(`${process.env.FRONTEND_URL}?auth=success`);
+        }
+        else {
+            res.redirect(`${process.env.FRONTEND_URL}?auth=failed&error=Invalid OAuth parameters`);
+        }
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        res.redirect(`${process.env.FRONTEND_URL}?auth=failed&error=${encodeURIComponent(message)}`);
+    }
+};
+export const handleOAuthFailure = async (req, res) => {
+    const { error } = req.query;
+    res.redirect(`${process.env.FRONTEND_URL}?auth=failed&error=${encodeURIComponent(String(error) || "OAuth authentication failed")}`);
+};
+//# sourceMappingURL=auth.controller.js.map
